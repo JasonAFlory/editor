@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply min-h-screen bg-[#07040f] text-violet-50 antialiased;
+}
