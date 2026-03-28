@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { DemoRealm } from '@/src/components/demo-realm'
+import { useNarrativeTimelineStore } from '@/src/stores/narrative-timeline-store'
 import { useAgenticCompanionStore } from '@/src/systems/AgenticCompanionSystem'
+import { narrativeEffectLabel } from '@/src/systems/NarrativeCSGReactor'
 
 export default function Home() {
   const [draft, setDraft] = useState('')
@@ -12,6 +14,17 @@ export default function Home() {
   const mood = useAgenticCompanionStore((s) => s.agent.emotionalState.moodLabel)
   const pushUserUtterance = useAgenticCompanionStore((s) => s.pushUserUtterance)
   const forkMoment = useAgenticCompanionStore((s) => s.forkMoment)
+
+  const narrativeStrength = useNarrativeTimelineStore((s) => s.narrativeStrength)
+  const simulationPhase = useNarrativeTimelineStore((s) => s.simulationPhase)
+  const timeScale = useNarrativeTimelineStore((s) => s.timeScale)
+  const forks = useNarrativeTimelineStore((s) => s.forks)
+  const activeForkIndex = useNarrativeTimelineStore((s) => s.activeForkIndex)
+  const setNarrativeStrength = useNarrativeTimelineStore((s) => s.setNarrativeStrength)
+  const setSimulationPhase = useNarrativeTimelineStore((s) => s.setSimulationPhase)
+  const setTimeScale = useNarrativeTimelineStore((s) => s.setTimeScale)
+  const addTimelineFork = useNarrativeTimelineStore((s) => s.addFork)
+  const selectFork = useNarrativeTimelineStore((s) => s.selectFork)
 
   return (
     <main className="relative min-h-screen overflow-x-hidden">
@@ -27,17 +40,103 @@ export default function Home() {
             </span>
           </h1>
           <p className="max-w-2xl text-pretty text-lg text-violet-200/75">
-            A browser-native holodeck: serene realms, emotionally aware companions, and forkable timelines — built on
-            the Pascal stack (<code className="text-violet-300">@pascal-app/core</code>,{' '}
-            <code className="text-violet-300">@pascal-app/viewer</code>) with WebGPU-first rendering.
+            A browser-native holodeck: serene realms, emotionally aware companions, and forkable
+            timelines — built on the Pascal stack (
+            <code className="text-violet-300">@pascal-app/core</code>,{' '}
+            <code className="text-violet-300">@pascal-app/viewer</code>) with WebGPU-first
+            rendering.
           </p>
         </header>
 
         <DemoRealm />
 
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+          <h2 className="mb-4 text-sm font-medium tracking-wide text-violet-200/90 uppercase">
+            Timeline & narrative CSG
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="mb-1 block text-xs text-violet-300/80" htmlFor="phase">
+                  Simulation scrub (drives void wobble in the monolith)
+                </label>
+                <input
+                  className="w-full accent-violet-500"
+                  id="phase"
+                  max={1}
+                  min={0}
+                  onChange={(e) => setSimulationPhase(Number(e.target.value))}
+                  step={0.01}
+                  type="range"
+                  value={simulationPhase}
+                />
+                <p className="mt-1 text-xs text-violet-500/70">
+                  Phase: {simulationPhase.toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-violet-300/80" htmlFor="strength">
+                  Narrative strength (boolean carve depth)
+                </label>
+                <input
+                  className="w-full accent-fuchsia-500"
+                  id="strength"
+                  max={1}
+                  min={0}
+                  onChange={(e) => setNarrativeStrength(Number(e.target.value))}
+                  step={0.01}
+                  type="range"
+                  value={narrativeStrength}
+                />
+                <p className="mt-1 text-xs text-violet-400/80">
+                  {narrativeEffectLabel(narrativeStrength)}
+                </p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-violet-300/80" htmlFor="timescale">
+                  Accelerated time (display · demo)
+                </label>
+                <select
+                  className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-violet-100"
+                  id="timescale"
+                  onChange={(e) => setTimeScale(Number(e.target.value))}
+                  value={timeScale}
+                >
+                  <option value={1}>1×</option>
+                  <option value={10}>10×</option>
+                  <option value={100}>100×</option>
+                  <option value={1000}>1000×</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-violet-300/80 uppercase">Branches</p>
+              <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto text-sm">
+                {forks.map((f, i) => (
+                  <li key={f.id}>
+                    <button
+                      className={`w-full rounded-lg px-3 py-2 text-left transition ${
+                        i === activeForkIndex
+                          ? 'bg-violet-500/25 text-white ring-1 ring-violet-400/50'
+                          : 'bg-black/20 text-violet-200/80 hover:bg-white/5'
+                      }`}
+                      onClick={() => selectFork(i)}
+                      type="button"
+                    >
+                      {f.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
         <section className="grid gap-6 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md md:grid-cols-2">
           <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-medium tracking-wide text-violet-200/90 uppercase">Companion</h2>
+            <h2 className="text-sm font-medium tracking-wide text-violet-200/90 uppercase">
+              Companion
+            </h2>
             <p className="text-sm text-violet-100/85 leading-relaxed">{companionLine}</p>
             <p className="text-xs text-violet-400/70">Mood: {mood}</p>
             {lastThought ? (
@@ -71,19 +170,22 @@ export default function Home() {
               </button>
               <button
                 className="rounded-full border border-violet-400/40 px-4 py-2 text-sm font-medium text-violet-100 transition hover:border-violet-300 hover:bg-violet-500/10"
-                onClick={() => forkMoment()}
+                onClick={() => {
+                  forkMoment()
+                  addTimelineFork()
+                }}
                 type="button"
               >
                 Fork this moment
               </button>
             </div>
-            <p className="text-xs text-violet-400/60">Active timeline forks (demo): {forkCount}</p>
+            <p className="text-xs text-violet-400/60">Companion fork count (demo): {forkCount}</p>
           </div>
         </section>
 
         <footer className="text-center text-xs text-violet-500/60">
-          Pattern research & creative tool — not therapy or medical advice. Early build; WebGPU requires a supported
-          browser.
+          Pattern research & creative tool — not therapy or medical advice. Early build; WebGPU
+          requires a supported browser.
         </footer>
       </div>
     </main>

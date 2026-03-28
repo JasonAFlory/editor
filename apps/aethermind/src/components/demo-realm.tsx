@@ -5,6 +5,7 @@ import { Canvas, extend, useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import { ACESFilmicToneMapping, PCFSoftShadowMap, WebGLRenderer } from 'three'
 import * as THREE from 'three/webgpu'
+import { NarrativeMonolith } from '@/src/components/narrative-monolith'
 import {
   AgenticCompanionSystem,
   useAgenticCompanionStore,
@@ -103,6 +104,7 @@ export function DemoRealm() {
         <pointLight color="#c4b5fd" intensity={1.2} position={[-4, 5, 2]} />
 
         <RealmFloor />
+        <NarrativeMonolith />
         <CompanionOrb />
         <Sparkles count={160} noise={1.2} opacity={0.55} scale={16} size={2} speed={0.22} />
         <AgenticCompanionSystem />

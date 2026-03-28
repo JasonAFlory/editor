@@ -3,11 +3,7 @@
 import { useFrame } from '@react-three/fiber'
 import { useCallback, useRef } from 'react'
 import { create } from 'zustand'
-import {
-  type AgentNode,
-  createDefaultAgentNode,
-  type EmotionalState,
-} from '../nodes/AgentNode'
+import { type AgentNode, createDefaultAgentNode, type EmotionalState } from '../nodes/AgentNode'
 
 const EVOLVE_MS = 900
 
@@ -26,7 +22,11 @@ function clamp(n: number, a: number, b: number) {
   return Math.min(b, Math.max(a, n))
 }
 
-function blendEmotion(prev: EmotionalState, valenceDelta: number, arousalDelta: number): EmotionalState {
+function blendEmotion(
+  prev: EmotionalState,
+  valenceDelta: number,
+  arousalDelta: number,
+): EmotionalState {
   const valence = clamp(prev.valence + valenceDelta, -1, 1)
   const arousal = clamp(prev.arousal + arousalDelta, 0, 1)
   let moodLabel = 'reflective'
@@ -48,8 +48,7 @@ function dialogueForAgent(agent: AgentNode): { thought: string; line: string } {
       line =
         'That sounds like it weighs on you. We could fork this scene so the outcome leans kinder—only if you want.'
     } else if (agent.emotionalState.moodLabel === 'alert') {
-      line =
-        'There’s a lot of energy in that. Want to slow the timeline and walk it step by step?'
+      line = 'There’s a lot of energy in that. Want to slow the timeline and walk it step by step?'
     } else {
       line =
         'Thank you for sharing that. I’ll hold it lightly. Tell me what “better” would feel like here.'
