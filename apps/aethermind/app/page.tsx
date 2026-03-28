@@ -1,13 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DemoRealm } from '@/src/components/demo-realm'
+import { requestNarrativeReasoning } from '@/src/lib/reasoning-edge'
 import { useNarrativeTimelineStore } from '@/src/stores/narrative-timeline-store'
+import { useWorldModelStore } from '@/src/stores/world-model-store'
 import { useAgenticCompanionStore } from '@/src/systems/AgenticCompanionSystem'
 import { narrativeEffectLabel } from '@/src/systems/NarrativeCSGReactor'
 
+function VariableBar({ label, value }: { label: string; value: number }) {
+  const pct = Math.round(value * 100)
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex justify-between text-xs text-violet-300/80">
+        <span>{label}</span>
+        <span>{pct}%</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-black/40">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 transition-[width] duration-300"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const [draft, setDraft] = useState('')
+  const [edgeBusy, setEdgeBusy] = useState(false)
+  const [edgeNote, setEdgeNote] = useState<string | null>(null)
+
   const companionLine = useAgenticCompanionStore((s) => s.companionLine)
   const lastThought = useAgenticCompanionStore((s) => s.lastThought)
   const forkCount = useAgenticCompanionStore((s) => s.forkCount)
@@ -25,6 +48,13 @@ export default function Home() {
   const setTimeScale = useNarrativeTimelineStore((s) => s.setTimeScale)
   const addTimelineFork = useNarrativeTimelineStore((s) => s.addFork)
   const selectFork = useNarrativeTimelineStore((s) => s.selectFork)
+
+  const snapshot = useWorldModelStore((s) => s.snapshot)
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh when timeline inputs change
+  useEffect(() => {
+    useWorldModelStore.getState().refreshFromTimeline()
+  }, [simulationPhase, timeScale, activeForkIndex])
 
   return (
     <main className="relative min-h-screen overflow-x-hidden">
@@ -58,7 +88,7 @@ export default function Home() {
             <div className="flex flex-col gap-4">
               <div>
                 <label className="mb-1 block text-xs text-violet-300/80" htmlFor="phase">
-                  Simulation scrub (drives void wobble in the monolith)
+                  Simulation scrub (void wobble; CSG updates debounced ~140ms)
                 </label>
                 <input
                   className="w-full accent-violet-500"
@@ -130,6 +160,22 @@ export default function Home() {
               </ul>
             </div>
           </div>
+
+          <div className="mt-6 border-violet-500/20 border-t pt-6">
+            <h3 className="mb-3 text-xs font-medium tracking-wide text-violet-200/90 uppercase">
+              World model (simulator stub)
+            </h3>
+            <p className="mb-4 text-xs text-violet-400/70">
+              {snapshot.eraLabel} · span {snapshot.simulatedSpan} (demo units) · fork #
+              {activeForkIndex}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <VariableBar label="Wealth" value={snapshot.variables.wealth} />
+              <VariableBar label="Health" value={snapshot.variables.health} />
+              <VariableBar label="Climate" value={snapshot.variables.climate} />
+              <VariableBar label="Relationships" value={snapshot.variables.relationships} />
+            </div>
+          </div>
         </section>
 
         <section className="grid gap-6 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md md:grid-cols-2">
@@ -163,10 +209,35 @@ export default function Home() {
                 onClick={() => {
                   pushUserUtterance(draft)
                   setDraft('')
+                  setEdgeNote(null)
                 }}
                 type="button"
               >
                 Send
+              </button>
+              <button
+                className="rounded-full border border-fuchsia-400/50 px-4 py-2 text-sm font-medium text-fuchsia-100 transition hover:border-fuchsia-300 hover:bg-fuchsia-500/10 disabled:opacity-50"
+                disabled={edgeBusy || !draft.trim()}
+                onClick={async () => {
+                  setEdgeBusy(true)
+                  setEdgeNote(null)
+                  const out = await requestNarrativeReasoning(draft)
+                  setEdgeBusy(false)
+                  if (out) {
+                    pushUserUtterance(`[Edge] ${out.text}`)
+                    setEdgeNote(null)
+                    setDraft('')
+                  } else {
+                    setEdgeNote(
+                      process.env.NEXT_PUBLIC_AETHERMIND_EDGE_URL
+                        ? 'Edge returned nothing or failed.'
+                        : 'Set NEXT_PUBLIC_AETHERMIND_EDGE_URL (see .env.example).',
+                    )
+                  }
+                }}
+                type="button"
+              >
+                {edgeBusy ? 'Reasoning…' : 'Reason (edge)'}
               </button>
               <button
                 className="rounded-full border border-violet-400/40 px-4 py-2 text-sm font-medium text-violet-100 transition hover:border-violet-300 hover:bg-violet-500/10"
@@ -179,6 +250,7 @@ export default function Home() {
                 Fork this moment
               </button>
             </div>
+            {edgeNote ? <p className="text-xs text-amber-300/90">{edgeNote}</p> : null}
             <p className="text-xs text-violet-400/60">Companion fork count (demo): {forkCount}</p>
           </div>
         </section>

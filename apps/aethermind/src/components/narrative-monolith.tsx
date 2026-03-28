@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { BoxGeometry, SphereGeometry } from 'three'
 import type * as THREE from 'three/webgpu'
 import { Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg'
+import { useDebouncedValue } from '@/src/hooks/use-debounced-value'
 import { useNarrativeTimelineStore } from '@/src/stores/narrative-timeline-store'
 import {
   voidOffsetForNarrativeStrength,
@@ -18,11 +19,13 @@ export function NarrativeMonolith() {
   const meshRef = useRef<THREE.Mesh>(null)
   const narrativeStrength = useNarrativeTimelineStore((s) => s.narrativeStrength)
   const simulationPhase = useNarrativeTimelineStore((s) => s.simulationPhase)
+  const debouncedPhase = useDebouncedValue(simulationPhase, 140)
+  const debouncedStrength = useDebouncedValue(narrativeStrength, 100)
 
   const geometry = useMemo(() => {
-    const radius = voidRadiusForNarrativeStrength(narrativeStrength)
-    const [ox, oy, oz] = voidOffsetForNarrativeStrength(narrativeStrength)
-    const wobble = Math.sin(simulationPhase * Math.PI * 2) * 0.22 * narrativeStrength
+    const radius = voidRadiusForNarrativeStrength(debouncedStrength)
+    const [ox, oy, oz] = voidOffsetForNarrativeStrength(debouncedStrength)
+    const wobble = Math.sin(debouncedPhase * Math.PI * 2) * 0.22 * debouncedStrength
     const evaluator = new Evaluator()
     const box = new Brush(new BoxGeometry(1.15, 2.05, 1.15))
     const sphere = new Brush(new SphereGeometry(radius, 32, 32))
@@ -32,7 +35,7 @@ export function NarrativeMonolith() {
     box.geometry.dispose()
     sphere.geometry.dispose()
     return result.geometry
-  }, [narrativeStrength, simulationPhase])
+  }, [debouncedStrength, debouncedPhase])
 
   useEffect(() => {
     return () => geometry.dispose()
@@ -41,7 +44,7 @@ export function NarrativeMonolith() {
   useFrame((_, delta) => {
     const m = meshRef.current
     if (!m) return
-    m.rotation.y += delta * 0.12 * (0.5 + narrativeStrength)
+    m.rotation.y += delta * 0.12 * (0.5 + debouncedStrength)
   })
 
   return (
@@ -49,7 +52,7 @@ export function NarrativeMonolith() {
       <meshStandardMaterial
         color="#8b7bc8"
         emissive="#4c1d95"
-        emissiveIntensity={0.12 + narrativeStrength * 0.35}
+        emissiveIntensity={0.12 + debouncedStrength * 0.35}
         metalness={0.18}
         roughness={0.42}
       />

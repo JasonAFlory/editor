@@ -10,3 +10,7 @@ cd apps/aethermind && bun run dev
 ```
 
 See vault `SAAS-BUILD-SYSTEM/PROJECTS/AetherMind/` for product briefs.
+
+## Optional env
+
+Copy `.env.example` → `.env.local` and set `NEXT_PUBLIC_AETHERMIND_EDGE_URL` for the **Reason (edge)** button (POST JSON `{ "prompt": "..." }`, response `{ "text": "..." }`).
